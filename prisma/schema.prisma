@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  ACCOUNTANT
+  FINANCE
+  OPERATIONS
+  VIEWER
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  COST
+  EXPENSE
+}
+
+enum EntrySource {
+  INVOICE
+  BANK_RECEIPT
+  CONTRACT_PAYMENT
+  MEASUREMENT
+  MANUAL
+}
+
+enum PayableStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  EXPORTED
+  ISSUED
+  CANCELLED
+}
+
+model Company {
+  id             String           @id @default(uuid()) @db.Uuid
+  name           String
+  taxIdEncrypted String
+  createdAt      DateTime         @default(now())
+  users          User[]
+  accounts       Account[]
+  projects       Project[]
+  partners       Partner[]
+  contracts      LaborContract[]
+  entries        JournalEntry[]
+  invoices       ServiceInvoice[]
+  receivables    Receivable[]
+  payables       Payable[]
+  bankStatements BankStatement[]
+  idempotency    IdempotencyKey[]
+  taxBrackets    TaxBracket[]
+  monthlyTasks   MonthlyTask[]
+  goodsSales     GoodsSale[]
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @db.Uuid
+  company      Company   @relation(fields: [companyId], references: [id])
+  email        String    @unique
+  passwordHash String
+  role         Role
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+  entries      JournalEntry[]
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  user             User      @relation(fields: [userId], references: [id])
+  refreshHash      String    @unique
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+model IdempotencyKey {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  company     Company  @relation(fields: [companyId], references: [id])
+  key         String
+  operation   String
+  requestHash String
+  response    Json
+  statusCode  Int
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@unique([companyId, operation, key])
+  @@index([expiresAt])
+}
+
+model Account {
+  id           String        @id @default(uuid()) @db.Uuid
+  companyId    String        @db.Uuid
+  company      Company       @relation(fields: [companyId], references: [id])
+  code         String
+  name         String
+  type         AccountType
+  active       Boolean       @default(true)
+  debitEntries JournalEntry[] @relation("DebitAccount")
+  creditEntries JournalEntry[] @relation("CreditAccount")
+
+  @@unique([companyId, code])
+}
+
+model Project {
+  id          String          @id @default(uuid()) @db.Uuid
+  companyId   String          @db.Uuid
+  company     Company         @relation(fields: [companyId], references: [id])
+  code        String
+  name        String
+  active      Boolean         @default(true)
+  contracts   LaborContract[]
+  entries     JournalEntry[]
+  invoices    ServiceInvoice[]
+  receivables Receivable[]
+  payables    Payable[]
+
+  @@unique([companyId, code])
+}
+
+model Partner {
+  id              String           @id @default(uuid()) @db.Uuid
+  companyId       String           @db.Uuid
+  company         Company          @relation(fields: [companyId], references: [id])
+  name            String
+  taxIdEncrypted  String?
+  bankEncrypted   String?
+  customer        Boolean          @default(false)
+  supplier        Boolean          @default(false)
+  invoices        ServiceInvoice[]
+  contracts       LaborContract[]
+  receivables     Receivable[]
+  payables        Payable[]
+}
+
+model LaborContract {
+  id               String        @id @default(uuid()) @db.Uuid
+  companyId        String        @db.Uuid
+  company          Company       @relation(fields: [companyId], references: [id])
+  projectId        String        @db.Uuid
+  project          Project       @relation(fields: [projectId], references: [id])
+  contractorId     String        @db.Uuid
+  contractor       Partner       @relation(fields: [contractorId], references: [id])
+  number           String
+  description      String
+  amount           Decimal       @db.Decimal(18, 2)
+  issWithheld      Boolean       @default(false)
+  inssWithheld     Boolean       @default(false)
+  issAmount        Decimal       @default(0) @db.Decimal(18, 2)
+  inssAmount       Decimal       @default(0) @db.Decimal(18, 2)
+  signedAt         DateTime?
+  measurements     Measurement[]
+  payables         Payable[]
+
+  @@unique([companyId, number])
+}
+
+model Measurement {
+  id         String        @id @default(uuid()) @db.Uuid
+  contractId String        @db.Uuid
+  contract   LaborContract @relation(fields: [contractId], references: [id])
+  amount     Decimal       @db.Decimal(18, 2)
+  issAmount  Decimal       @default(0) @db.Decimal(18, 2)
+  inssAmount Decimal       @default(0) @db.Decimal(18, 2)
+  measuredAt DateTime
+  approvedAt DateTime?
+  payable    Payable?
+}
+
+model JournalEntry {
+  id              String         @id @default(uuid()) @db.Uuid
+  companyId       String         @db.Uuid
+  company         Company        @relation(fields: [companyId], references: [id])
+  debitAccountId  String         @db.Uuid
+  debitAccount    Account        @relation("DebitAccount", fields: [debitAccountId], references: [id])
+  creditAccountId String         @db.Uuid
+  creditAccount   Account        @relation("CreditAccount", fields: [creditAccountId], references: [id])
+  projectId       String?        @db.Uuid
+  project         Project?       @relation(fields: [projectId], references: [id])
+  amount          Decimal        @db.Decimal(18, 2)
+  description     String
+  source          EntrySource
+  sourceId        String         @db.Uuid
+  occurredAt      DateTime
+  createdById     String         @db.Uuid
+  createdBy       User           @relation(fields: [createdById], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([companyId, occurredAt])
+  @@index([companyId, projectId])
+  @@unique([companyId, source, sourceId, debitAccountId, creditAccountId])
+}
+
+model ServiceInvoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  companyId      String        @db.Uuid
+  company        Company       @relation(fields: [companyId], references: [id])
+  projectId      String        @db.Uuid
+  project        Project       @relation(fields: [projectId], references: [id])
+  customerId     String        @db.Uuid
+  customer       Partner       @relation(fields: [customerId], references: [id])
+  number         String
+  amount         Decimal       @db.Decimal(18, 2)
+  serviceDate    DateTime
+  taxAnnex       String
+  issWithheld    Boolean       @default(false)
+  inssWithheld   Boolean       @default(false)
+  issAmount      Decimal       @default(0) @db.Decimal(18, 2)
+  inssAmount     Decimal       @default(0) @db.Decimal(18, 2)
+  status         InvoiceStatus @default(DRAFT)
+  layoutVersion  String?
+  xmlEncrypted   String?
+  receivable     Receivable?
+
+  @@unique([companyId, number])
+}
+
+model GoodsSale {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  company   Company  @relation(fields: [companyId], references: [id])
+  number    String
+  amount    Decimal  @db.Decimal(18, 2)
+  soldAt    DateTime
+  cancelled Boolean  @default(false)
+
+  @@unique([companyId, number])
+}
+
+model Receivable {
+  id          String         @id @default(uuid()) @db.Uuid
+  companyId   String         @db.Uuid
+  company     Company        @relation(fields: [companyId], references: [id])
+  invoiceId   String         @unique @db.Uuid
+  invoice     ServiceInvoice @relation(fields: [invoiceId], references: [id])
+  customerId  String         @db.Uuid
+  customer    Partner        @relation(fields: [customerId], references: [id])
+  projectId   String         @db.Uuid
+  project     Project        @relation(fields: [projectId], references: [id])
+  amount      Decimal        @db.Decimal(18, 2)
+  received    Decimal        @default(0) @db.Decimal(18, 2)
+  dueAt       DateTime
+  bankMatches BankTransaction[]
+}
+
+model Payable {
+  id           String        @id @default(uuid()) @db.Uuid
+  companyId    String        @db.Uuid
+  company      Company       @relation(fields: [companyId], references: [id])
+  contractorId String        @db.Uuid
+  contractor   Partner       @relation(fields: [contractorId], references: [id])
+  contractId   String        @db.Uuid
+  contract     LaborContract @relation(fields: [contractId], references: [id])
+  measurementId String?       @unique @db.Uuid
+  measurement   Measurement?  @relation(fields: [measurementId], references: [id])
+  projectId    String        @db.Uuid
+  project      Project       @relation(fields: [projectId], references: [id])
+  amount       Decimal       @db.Decimal(18, 2)
+  dueAt        DateTime
+  status       PayableStatus @default(OPEN)
+  paidAt       DateTime?
+}
+
+model BankStatement {
+  id           String            @id @default(uuid()) @db.Uuid
+  companyId    String            @db.Uuid
+  company      Company           @relation(fields: [companyId], references: [id])
+  fileHash     String
+  importedAt   DateTime          @default(now())
+  transactions BankTransaction[]
+
+  @@unique([companyId, fileHash])
+}
+
+model BankTransaction {
+  id            String        @id @default(uuid()) @db.Uuid
+  statementId   String        @db.Uuid
+  statement     BankStatement @relation(fields: [statementId], references: [id])
+  externalId    String
+  amount        Decimal       @db.Decimal(18, 2)
+  postedAt      DateTime
+  description   String
+  receivableId  String?       @db.Uuid
+  receivable    Receivable?   @relation(fields: [receivableId], references: [id])
+  reconciledAt  DateTime?
+
+  @@unique([statementId, externalId])
+}
+
+model TaxBracket {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @db.Uuid
+  company        Company  @relation(fields: [companyId], references: [id])
+  annex          String
+  lowerLimit     Decimal  @db.Decimal(18, 2)
+  upperLimit     Decimal  @db.Decimal(18, 2)
+  nominalRate    Decimal  @db.Decimal(8, 6)
+  deduction      Decimal  @db.Decimal(18, 2)
+  effectiveFrom  DateTime
+  effectiveUntil DateTime?
+
+  @@index([companyId, annex, effectiveFrom])
+}
+
+model MonthlyTask {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  company     Company  @relation(fields: [companyId], references: [id])
+  month       DateTime @db.Date
+  title       String
+  completedAt DateTime?
+
+  @@unique([companyId, month, title])
+}
