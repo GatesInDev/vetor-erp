@@ -55,7 +55,7 @@ O seed usa `INITIAL_COMPANY_NAME`, `INITIAL_COMPANY_TAX_ID`, `INITIAL_ADMIN_EMAI
 
 ## 4. Enviar o código ao GitHub
 
-O diretório ainda não foi inicializado como repositório Git. Crie um repositório **vazio** no [GitHub](https://github.com/new), sem adicionar README ou `.gitignore` pela interface, e então execute:
+Se ainda não houver um repositório configurado, crie um repositório **vazio** no [GitHub](https://github.com/new), sem adicionar README ou `.gitignore` pela interface, e então execute:
 
 ```powershell
 git init -b main
