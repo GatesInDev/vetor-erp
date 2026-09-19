@@ -14,7 +14,7 @@ export function LoginForm() {
     const data = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: data.get("email"), password: data.get("password") }) });
-      if (!response.ok) throw new Error("E-mail ou senha inválidos.");
+      if (!response.ok) throw new Error(response.status === 401 ? "E-mail ou senha inválidos." : "Não foi possível entrar. Recarregue a página e tente novamente.");
       window.location.assign("/");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível entrar.");

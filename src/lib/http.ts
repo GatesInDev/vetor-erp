@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HttpError } from "@/lib/auth";
+import { hasSameOrigin } from "@/lib/request-origin";
 
 export function checkOrigin(request: NextRequest): void {
-  const origin = request.headers.get("origin");
-  if (!origin || origin !== request.nextUrl.origin) throw new HttpError(403, "Invalid origin");
+  if (!hasSameOrigin(request)) throw new HttpError(403, "Invalid origin");
 }
 
 export function errorResponse(error: unknown): NextResponse {

@@ -8,7 +8,8 @@ Base de um ERP para uma empresa de pisos industriais, com Next.js na Vercel, Pos
 
 ```text
 src/app                    Next.js App Router, páginas e endpoints
-src/components             Interface do dashboard e login
+src/modules                Slices: workspace, dashboard, billing, finance, inventory, registrations
+src/components             Login e componentes visuais compartilhados
 src/lib/auth.ts            Sessões, JWT, RBAC e cookies
 src/lib/crypto.ts          Criptografia autenticada e hash
 src/lib/idempotency.ts     Controle transacional de reexecução
@@ -34,11 +35,37 @@ Para produção, siga o guia de deploy: configure as variáveis na Vercel, apliq
 
 ## Fluxos implementados
 
+### Módulos da interface
+
+Após entrar, a página inicial apresenta os módulos e os atalhos de cadastro. A navegação lateral permanece disponível em todas as telas.
+
+| Módulo | Rota | Operações disponíveis |
+| --- | --- | --- |
+| Início | `/` | Busca de módulos e atalhos para cadastros e indicadores |
+| Cadastros | `/registrations` | Criar e editar obras, clientes e fornecedores; ativar/inativar obras |
+| Faturamento | `/billing` | Registrar serviços, contratos e medições; aprovar medições |
+| Financeiro | `/finance` | Contas a pagar e receber, baixa de pagamento, importação OFX, conciliação de créditos e exportação do razão |
+| Estoque | `/inventory` | Cadastrar e editar produtos, registrar entradas e saídas por obra, consultar saldos e últimas 100 movimentações |
+| Dashboard | `/dashboard` | Indicadores com atalhos, gráfico por mês e período, checklist mensal e últimos lançamentos |
+
+Para começar, cadastre uma obra e os parceiros em **Cadastros**. Depois, registre um serviço em **Faturamento** para gerar a conta a receber. Contratos e medições aprovadas geram contas a pagar. No **Estoque**, cadastre o produto e registre uma entrada para informar o saldo inicial. Saídas exigem uma obra ativa e saldo suficiente.
+
+Os formulários mostram os erros da operação, impedem envios repetidos enquanto salvam e atualizam as listas ao concluir. As ações disponíveis dependem do papel do usuário. Valores e indicadores são consultados no banco da empresa autenticada. O tema claro/escuro pode ser alternado no topo da aplicação.
+
+O estoque possui uma migração própria em `prisma/migrations/20260918120000_inventory`. Em instalações existentes, execute `npx prisma migrate deploy` antes de publicar a atualização. Não execute novamente o seed para atualizar uma empresa já cadastrada.
+
+### Endpoints
+
 | Endpoint | Ação | Papel |
 | --- | --- | --- |
 | `POST /api/auth/login` | Login com Argon2 e abertura de sessão | Público |
 | `POST /api/auth/refresh` | Rotação de refresh token | Sessão válida |
 | `POST /api/auth/logout` | Revogação de sessão | Autenticado |
+| `GET/POST /api/projects`, `PATCH /api/projects/:id` | Consulta, criação e edição de obras | Leitura: todos; escrita: admin, contador, financeiro, operação |
+| `GET/POST /api/partners`, `PATCH /api/partners/:id` | Consulta, criação e edição de clientes e fornecedores | Leitura: todos; escrita: admin, contador, financeiro, operação |
+| `GET/POST /api/inventory/products`, `PATCH /api/inventory/products/:id` | Produtos e estoque mínimo | Leitura: todos; escrita: admin, contador, financeiro, operação |
+| `GET/POST /api/inventory/movements` | Histórico, entradas e saídas de estoque | Leitura: todos; escrita: admin, contador, financeiro, operação |
+| `PATCH /api/monthly-tasks/:id` | Marcar ou desmarcar tarefa mensal | Admin, contador, financeiro |
 | `POST /api/contracts` | Cadastro do contrato vinculado à obra | Admin, contador, financeiro, operação |
 | `POST /api/contracts/:id/measurements` | Registro de medição dentro do valor contratado | Admin, contador, operação |
 | `POST /api/measurements/:id/approve` | Aprovação, obrigação e custo da obra | Admin, contador, financeiro |
@@ -63,6 +90,18 @@ As mutações de contrato, medição, nota e baixas exigem `X-Idempotency-Key`, 
 | Pagamento de prestador | Contratos a pagar | Bancos |
 
 Os valores de retenção do contrato são informados explicitamente e distribuídos proporcionalmente entre medições aprovadas, com acerto de arredondamento na última medição. O sistema não escolhe incidência nem calcula tributos automaticamente. A prévia do Simples lê faixas cadastradas e calcula `(RBT12 × alíquota nominal − parcela a deduzir) ÷ RBT12`. Ela não substitui o PGDAS-D e precisa da classificação da receita, tratamento das retenções e revisão do contador.
+
+## Verificação local
+
+```powershell
+npm run db:generate
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+Os testes cobrem a atualização condicional de saldo, recusa de estoque insuficiente, isolamento de empresa, precisão de quantidades e validação da origem das requisições. Usam transações simuladas, sem alterar o banco. A verificação completa dos fluxos financeiros deve ser feita com dados de teste em um banco separado.
 
 ## Segurança
 

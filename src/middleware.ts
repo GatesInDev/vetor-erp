@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { hasSameOrigin } from "@/lib/request-origin";
 
 const roleAccess: { prefix: string; roles: string[] }[] = [
   { prefix: "/api/invoices", roles: ["ADMIN", "ACCOUNTANT", "FINANCE"] },
@@ -10,6 +11,10 @@ const roleAccess: { prefix: string; roles: string[] }[] = [
   { prefix: "/api/bank-statements", roles: ["ADMIN", "ACCOUNTANT", "FINANCE"] },
   { prefix: "/api/reports", roles: ["ADMIN", "ACCOUNTANT", "FINANCE", "VIEWER"] },
   { prefix: "/api/exports", roles: ["ADMIN", "ACCOUNTANT", "FINANCE"] },
+  { prefix: "/api/projects", roles: ["ADMIN", "ACCOUNTANT", "FINANCE", "OPERATIONS", "VIEWER"] },
+  { prefix: "/api/partners", roles: ["ADMIN", "ACCOUNTANT", "FINANCE", "OPERATIONS", "VIEWER"] },
+  { prefix: "/api/inventory", roles: ["ADMIN", "ACCOUNTANT", "FINANCE", "OPERATIONS", "VIEWER"] },
+  { prefix: "/api/monthly-tasks", roles: ["ADMIN", "ACCOUNTANT", "FINANCE"] },
 ];
 
 export async function middleware(request: NextRequest) {
@@ -21,8 +26,7 @@ export async function middleware(request: NextRequest) {
     const rule = roleAccess.find((item) => request.nextUrl.pathname.startsWith(item.prefix));
     if (rule && !rule.roles.includes(String(payload.role))) return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
-      const origin = request.headers.get("origin");
-      if (!origin || origin !== request.nextUrl.origin) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+      if (!hasSameOrigin(request)) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
     }
     return NextResponse.next();
   } catch {
