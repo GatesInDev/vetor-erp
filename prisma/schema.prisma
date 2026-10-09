@@ -29,6 +29,8 @@ enum EntrySource {
   INVOICE
   BANK_RECEIPT
   CONTRACT_PAYMENT
+  RENTAL_CHARGE
+  RENTAL_PAYMENT
   MEASUREMENT
   MANUAL
 }
@@ -49,6 +51,20 @@ enum InvoiceStatus {
 enum StockMovementType {
   ENTRY
   EXIT
+}
+
+enum FinancialTitleKind {
+  BOLETO
+  DUPLICATE
+  PROMISSORY_NOTE
+  OTHER
+}
+
+enum RentalDocumentKind {
+  NFSE
+  INVOICE
+  RENTAL_RECEIPT
+  OTHER
 }
 
 model Company {
@@ -72,6 +88,14 @@ model Company {
   goodsSales     GoodsSale[]
   inventoryProducts InventoryProduct[]
   stockMovements StockMovement[]
+  reportTemplates ReportTemplate[]
+  financialTitles FinancialTitle[]
+  equipmentRentals EquipmentRental[]
+  rentalCharges RentalCharge[]
+  rentalChargeFiles RentalChargeFile[]
+  mailConnection MailConnection?
+  mailMessages MailMessage[]
+  mailAttachments MailAttachment[]
 }
 
 model User {
@@ -86,6 +110,18 @@ model User {
   sessions     Session[]
   entries      JournalEntry[]
   stockMovements StockMovement[]
+  preferences  UserPreference?
+}
+
+model UserPreference {
+  userId            String   @id @db.Uuid
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme             String   @default("dark") @db.VarChar(5)
+  locale            String   @default("pt-BR") @db.VarChar(5)
+  decimalPlaces     Int      @default(2)
+  loadedScreenLimit Int      @default(8)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Session {
@@ -141,8 +177,10 @@ model Project {
   receivables Receivable[]
   payables    Payable[]
   stockMovements StockMovement[]
+  equipmentRentals EquipmentRental[]
 
   @@unique([companyId, code])
+  @@unique([companyId, id])
 }
 
 model Partner {
@@ -158,6 +196,9 @@ model Partner {
   contracts       LaborContract[]
   receivables     Receivable[]
   payables        Payable[]
+  equipmentRentals EquipmentRental[]
+
+  @@unique([companyId, id])
 }
 
 model LaborContract {
@@ -268,6 +309,9 @@ model Receivable {
   received    Decimal        @default(0) @db.Decimal(18, 2)
   dueAt       DateTime
   bankMatches BankTransaction[]
+  financialTitle FinancialTitle?
+
+  @@unique([companyId, id])
 }
 
 model Payable {
@@ -276,8 +320,10 @@ model Payable {
   company      Company       @relation(fields: [companyId], references: [id])
   contractorId String        @db.Uuid
   contractor   Partner       @relation(fields: [contractorId], references: [id])
-  contractId   String        @db.Uuid
-  contract     LaborContract @relation(fields: [contractId], references: [id])
+  contractId   String?       @db.Uuid
+  contract     LaborContract? @relation(fields: [contractId], references: [id])
+  rentalChargeId String?     @db.Uuid
+  rentalCharge RentalCharge? @relation(fields: [companyId, rentalChargeId], references: [companyId, id], onDelete: Restrict)
   measurementId String?       @unique @db.Uuid
   measurement   Measurement?  @relation(fields: [measurementId], references: [id])
   projectId    String        @db.Uuid
@@ -286,6 +332,165 @@ model Payable {
   dueAt        DateTime
   status       PayableStatus @default(OPEN)
   paidAt       DateTime?
+  financialTitle FinancialTitle?
+
+  @@unique([companyId, id])
+  @@unique([companyId, rentalChargeId])
+}
+
+model EquipmentRental {
+  id                  String   @id @default(uuid()) @db.Uuid
+  companyId           String   @db.Uuid
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  projectId           String   @db.Uuid
+  project             Project  @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  supplierId          String   @db.Uuid
+  supplier            Partner  @relation(fields: [companyId, supplierId], references: [companyId, id], onDelete: Restrict)
+  number              String   @db.VarChar(80)
+  equipmentName       String   @db.VarChar(160)
+  equipmentIdentifier String   @default("") @db.VarChar(120)
+  quantity            Int
+  startsAt            DateTime @db.Date
+  expectedReturnAt    DateTime? @db.Date
+  returnedAt          DateTime? @db.Date
+  notes               String   @default("") @db.VarChar(2000)
+  revision            Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  charges             RentalCharge[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, number])
+  @@index([companyId, projectId, startsAt])
+}
+
+model RentalCharge {
+  id             String             @id @default(uuid()) @db.Uuid
+  companyId      String             @db.Uuid
+  company        Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  rentalId       String             @db.Uuid
+  rental         EquipmentRental    @relation(fields: [companyId, rentalId], references: [companyId, id], onDelete: Restrict)
+  documentKind   RentalDocumentKind
+  documentNumber String             @db.VarChar(80)
+  issuedAt       DateTime           @db.Date
+  dueAt          DateTime           @db.Date
+  amount         Decimal            @db.Decimal(18, 2)
+  documentUrl    String             @default("") @db.VarChar(2000)
+  notes          String             @default("") @db.VarChar(2000)
+  createdAt      DateTime           @default(now())
+  payable        Payable?
+  files          RentalChargeFile[]
+  mailAttachments MailAttachment[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, rentalId, documentKind, documentNumber])
+  @@index([companyId, rentalId, issuedAt])
+}
+
+model RentalChargeFile {
+  id               String       @id @default(uuid()) @db.Uuid
+  companyId        String       @db.Uuid
+  company          Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  rentalChargeId   String       @db.Uuid
+  rentalCharge     RentalCharge @relation(fields: [companyId, rentalChargeId], references: [companyId, id], onDelete: Restrict)
+  fileName         String       @db.VarChar(180)
+  mediaType        String       @db.VarChar(80)
+  sizeBytes        Int
+  contentEncrypted String
+  createdAt        DateTime     @default(now())
+
+  @@index([companyId, rentalChargeId])
+}
+
+model MailConnection {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @unique @db.Uuid
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  username          String    @db.VarChar(254)
+  passwordEncrypted String
+  folder            String    @default("INBOX") @db.VarChar(200)
+  enabled           Boolean   @default(true)
+  autoSync          Boolean   @default(false)
+  importSince       DateTime  @db.Date
+  revision          Int       @default(1)
+  mailboxVersion    String    @default(uuid()) @db.Uuid
+  uidValidity       String?   @db.VarChar(40)
+  cursorUid         BigInt    @default(0)
+  syncToken         String?   @db.Uuid
+  syncUntil         DateTime?
+  lastSyncedAt      DateTime?
+  lastSyncAttemptAt DateTime?
+  lastSyncError     String?   @db.VarChar(300)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([enabled, autoSync, lastSyncAttemptAt])
+}
+
+model MailMessage {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @db.Uuid
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  mailboxVersion    String    @db.Uuid
+  uidValidity       String    @db.VarChar(40)
+  uid               BigInt
+  messageId         String?   @db.VarChar(500)
+  subject           String    @db.VarChar(500)
+  from              String    @db.VarChar(1000)
+  receivedAt        DateTime
+  bodyTextEncrypted String
+  warnings          Json
+  createdAt         DateTime  @default(now())
+  attachments       MailAttachment[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, mailboxVersion, uidValidity, uid])
+  @@index([companyId, receivedAt, id])
+}
+
+model MailAttachment {
+  id                String       @id @default(uuid()) @db.Uuid
+  companyId         String       @db.Uuid
+  company           Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  messageId         String       @db.Uuid
+  message           MailMessage  @relation(fields: [companyId, messageId], references: [companyId, id], onDelete: Restrict)
+  partId            String       @db.VarChar(80)
+  fileName          String       @db.VarChar(180)
+  mediaType         String       @db.VarChar(80)
+  sizeBytes         Int
+  contentHash       String       @db.VarChar(64)
+  contentEncrypted  String
+  rentalChargeId    String?      @db.Uuid
+  rentalCharge      RentalCharge? @relation(fields: [companyId, rentalChargeId], references: [companyId, id], onDelete: Restrict)
+  importedAt        DateTime?
+  createdAt         DateTime     @default(now())
+
+  @@unique([companyId, messageId, partId])
+  @@unique([companyId, messageId, contentHash])
+  @@index([companyId, rentalChargeId])
+}
+
+model FinancialTitle {
+  id           String             @id @default(uuid()) @db.Uuid
+  companyId    String             @db.Uuid
+  company      Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  payableId    String?            @db.Uuid
+  payable      Payable?           @relation(fields: [companyId, payableId], references: [companyId, id], onDelete: Restrict)
+  receivableId String?            @db.Uuid
+  receivable   Receivable?        @relation(fields: [companyId, receivableId], references: [companyId, id], onDelete: Restrict)
+  kind         FinancialTitleKind @default(BOLETO)
+  number       String             @db.VarChar(80)
+  bankName     String             @default("") @db.VarChar(120)
+  digitLine    String             @default("") @db.VarChar(48)
+  barcode      String             @default("") @db.VarChar(44)
+  notes        String             @default("") @db.VarChar(2000)
+  revision     Int                @default(1)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([companyId, payableId])
+  @@unique([companyId, receivableId])
+  @@index([companyId, updatedAt])
 }
 
 model BankStatement {
@@ -374,4 +579,19 @@ model StockMovement {
 
   @@index([companyId, createdAt])
   @@index([companyId, productId])
+}
+
+model ReportTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String   @db.VarChar(120)
+  description String   @default("") @db.VarChar(500)
+  definition  Json
+  revision    Int      @default(1)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId, active, updatedAt])
 }

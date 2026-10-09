@@ -1,4 +1,5 @@
 import { ModuleLauncher } from "@/modules/workspace/components/module-launcher";
+import { WorkspaceScreen } from "@/modules/workspace/components/workspace-screen";
 import { getWorkspaceContext } from "@/modules/workspace/server/context";
 import { db } from "@/lib/db";
 
@@ -10,5 +11,9 @@ export default async function WorkspacePage() {
     db.serviceInvoice.count({ where: { companyId: actor.companyId } }),
     db.payable.count({ where: { companyId: actor.companyId, status: "OPEN" } }),
   ]);
-  return <ModuleLauncher companyName={company.name} projectCount={projectCount} customerCount={customerCount} invoiceCount={invoiceCount} payableCount={payableCount} role={actor.role} />;
+  return (
+    <WorkspaceScreen pathname="/">
+      <ModuleLauncher companyName={company.name} projectCount={projectCount} customerCount={customerCount} invoiceCount={invoiceCount} payableCount={payableCount} role={actor.role} />
+    </WorkspaceScreen>
+  );
 }

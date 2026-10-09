@@ -6,10 +6,12 @@ export const accountCodes = {
   issRetention: "1.1.04",
   inssRetention: "1.1.05",
   contractorPayable: "2.1.04",
+  supplierPayable: "2.1.01",
   issPayable: "2.1.05",
   inssPayable: "2.1.06",
   serviceRevenue: "4.1.01",
   laborCost: "5.1.01",
+  equipmentRentalCost: "5.1.03",
 } as const;
 
 export const defaultAccounts: { code: string; name: string; type: AccountType }[] = [

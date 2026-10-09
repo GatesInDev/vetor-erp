@@ -37,9 +37,6 @@ export type BillingData = {
   invoices: InvoiceRow[];
   contracts: ContractRow[];
   measurements: MeasurementRow[];
-  customers: SelectOption[];
-  suppliers: SelectOption[];
-  projects: SelectOption[];
 };
 
 export const formatMoney = (value: string | number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));

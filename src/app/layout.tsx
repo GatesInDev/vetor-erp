@@ -3,6 +3,9 @@ import "./globals.css";
 import "./modules.css";
 import "./forms.css";
 import "./responsive.css";
+import "./workspace.css";
+import "./reports.css";
+import "./navigation.css";
 
 export const metadata: Metadata = { title: "Vetor ERP", description: "Industrial flooring operations and finance" };
 

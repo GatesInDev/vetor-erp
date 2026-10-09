@@ -79,6 +79,7 @@ Troque `SEU_USUARIO` e o nome do repositório pelos seus. Se você já tiver um 
 | `DIRECT_URL` | URL **Direct connection** ou **Session pooler** conforme sua conectividade |
 | `JWT_SECRET` | O mesmo segredo usado localmente para esta instalação |
 | `DATA_ENCRYPTION_KEY` | Exatamente a mesma chave de criptografia usada no seed e na aplicação |
+| `CRON_SECRET` | Segredo aleatório de pelo menos 32 caracteres para proteger a sincronização automática de e-mail |
 
 As variáveis `INITIAL_*` são necessárias apenas ao executar o seed. Não precisam ficar na Vercel. Não use o prefixo `NEXT_PUBLIC_` para nenhuma dessas variáveis; esse prefixo expõe o valor ao navegador.
 
@@ -89,6 +90,12 @@ Configure variáveis de **Preview** somente se também houver um banco separado 
 ## 6. Próximos deploys
 
 Para alterações só de aplicação, faça commit e push para `main`; a integração Git da Vercel inicia o deploy automaticamente. Para alterações no `prisma/schema.prisma`, crie e revise a nova migração no ambiente de desenvolvimento, envie o arquivo da migração ao GitHub e execute `npx prisma migrate deploy` contra o banco de produção **antes** de publicar código que depende das novas tabelas/colunas. O build da Vercel gera o cliente Prisma, mas **não aplica migrações**. Esse fluxo evita executar alterações de banco concorrentemente em vários builds.
+
+## 7. Recebimento automático de documentos por e-mail
+
+Após publicar a versão que inclui a caixa de entrada, abra **Configurações → Integrações → Conexão de e-mail**. Cadastre a conta Gmail e sua senha de app, escolha a pasta e a data inicial, e faça a primeira sincronização manual para conferir o acesso.
+
+O arquivo `vercel.json` inclui um agendamento diário para `/api/cron/mail-sync`. Para ativá-lo em produção, configure `CRON_SECRET`, habilite Fluid compute e marque **Receber documentos automaticamente** na conexão. O passo a passo, os limites por lote e as opções para intervalos menores estão em [EMAIL_IMPORT.md](docs/EMAIL_IMPORT.md).
 
 ## Verificação rápida
 

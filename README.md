@@ -50,6 +50,12 @@ Após entrar, a página inicial apresenta os módulos e os atalhos de cadastro. 
 
 Para começar, cadastre uma obra e os parceiros em **Cadastros**. Depois, registre um serviço em **Faturamento** para gerar a conta a receber. Contratos e medições aprovadas geram contas a pagar. No **Estoque**, cadastre o produto e registre uma entrada para informar o saldo inicial. Saídas exigem uma obra ativa e saldo suficiente.
 
+A barra **Telas abertas** permite alternar entre módulos e formulários. As abas usam visual plano, com a tela ativa indicada por uma linha discreta. Criar ou editar abre uma página própria, com campos organizados em seções recolhíveis. As abas de formulário preservam os campos preenchidos durante a navegação; alterações pendentes aparecem com um indicador e o fechamento exige confirmação na própria página. Os rascunhos ficam apenas na memória da sessão da página e não são recuperados depois de recarregar, sair ou fechar o navegador.
+
+Até 8 telas ficam carregadas localmente para troca rápida entre abas, preservando filtros e estado da tela. O módulo **Configurações** centraliza tema persistido, idioma (`pt-BR`/`en-US`), casas decimais de exibição e limite de telas mantidas em memória. Essas preferências são salvas por usuário no banco. Consulte [docs/SETTINGS.md](docs/SETTINGS.md) para uso, comportamento do cache, endpoints e migração necessária.
+
+A tipografia usa base de 16 px, campos com fonte de 16 px e controles maiores. Em telas pequenas, os formulários passam para uma coluna e as abas permitem rolagem horizontal.
+
 Os formulários mostram os erros da operação, impedem envios repetidos enquanto salvam e atualizam as listas ao concluir. As ações disponíveis dependem do papel do usuário. Valores e indicadores são consultados no banco da empresa autenticada. O tema claro/escuro pode ser alternado no topo da aplicação.
 
 O estoque possui uma migração própria em `prisma/migrations/20260918120000_inventory`. Em instalações existentes, execute `npx prisma migrate deploy` antes de publicar a atualização. Não execute novamente o seed para atualizar uma empresa já cadastrada.
@@ -91,6 +97,20 @@ As mutações de contrato, medição, nota e baixas exigem `X-Idempotency-Key`, 
 
 Os valores de retenção do contrato são informados explicitamente e distribuídos proporcionalmente entre medições aprovadas, com acerto de arredondamento na última medição. O sistema não escolhe incidência nem calcula tributos automaticamente. A prévia do Simples lê faixas cadastradas e calcula `(RBT12 × alíquota nominal − parcela a deduzir) ÷ RBT12`. Ela não substitui o PGDAS-D e precisa da classificação da receita, tratamento das retenções e revisão do contador.
 
+## API mobile e relatórios personalizados
+
+A API aceita autenticação Bearer para aplicativos nativos, com login, renovação e logout em `/api/auth/mobile/*`. O guia [docs/API.md](docs/API.md) contém exemplos e a lista dos endpoints disponíveis.
+
+O módulo **Relatórios** oferece biblioteca de modelos, editor por arrastar e soltar, campos manuais, fontes do ERP e impressão/PDF pelo navegador. Veja [docs/REPORTS.md](docs/REPORTS.md) para criar uma ficha de abastecimento ou um relatório com tabela. A migração `20260926120000_report_templates` precisa estar aplicada no banco de cada ambiente antes do uso.
+
+O elemento **Tabela para preenchimento** permite configurar colunas e linhas em branco para completar depois da impressão, independentemente da fonte de dados.
+
+Em **Financeiro → Títulos**, cadastre boletos, duplicatas e outros documentos vinculados às contas a pagar ou a receber. Os vínculos permitem consultar parceiro, obra e documento de origem; os saldos acompanham a conta financeira. Consulte [docs/FINANCIAL_TITLES.md](docs/FINANCIAL_TITLES.md) para o funcionamento, a migration e a API.
+
+Em **Relatórios**, gere **Balanço patrimonial** por data de referência e **Balancete** por período, com conferência de totais e impressão/PDF. Os cálculos usam os lançamentos contábeis existentes. Consulte [docs/ACCOUNTING_REPORTS.md](docs/ACCOUNTING_REPORTS.md) para os filtros, critérios de cálculo e endpoints.
+
+Em **Locações**, relacione equipamentos alugados com a obra e a empresa locadora. Cada locação reúne as cobranças recebidas, suas contas a pagar, títulos e anexos XML/PDF. A leitura do XML sugere campos para revisão antes de registrar a cobrança. Obras e fornecedores também têm uma aba de locações vinculadas. Consulte [docs/EQUIPMENT_RENTALS.md](docs/EQUIPMENT_RENTALS.md) para o fluxo, os limites dos anexos, as permissões, a migration e as APIs.
+
 ## Verificação local
 
 ```powershell
@@ -101,7 +121,13 @@ npm test
 npm run build
 ```
 
-Os testes cobrem a atualização condicional de saldo, recusa de estoque insuficiente, isolamento de empresa, precisão de quantidades e validação da origem das requisições. Usam transações simuladas, sem alterar o banco. A verificação completa dos fluxos financeiros deve ser feita com dados de teste em um banco separado.
+Os testes cobrem atualização condicional de saldo, recusa de estoque insuficiente, isolamento de empresa, precisão de quantidades, validação de origem, autenticação Bearer, rotação concorrente de tokens, navegação das abas internas, validação dos modelos e paginação dos relatórios. Usam transações simuladas, sem alterar o banco. A verificação completa dos fluxos financeiros deve ser feita com dados de teste em um banco separado.
+
+## Documentos recebidos por e-mail
+
+O módulo **Caixa de entrada** sincroniza uma pasta do Gmail/Google Workspace por empresa e mantém XMLs e PDFs para revisão. Configure a conta em **Configurações → Conexão de e-mail**. Após conferir os anexos e escolher a locação, confirme a cobrança para criar a conta a pagar e acessar o cadastro do título. A sincronização não cria lançamentos financeiros sozinha.
+
+Consulte [o guia de integração de e-mail](docs/EMAIL_IMPORT.md) para gerar a senha de app do Google, definir o período de importação e ativar o agendamento da Vercel com `CRON_SECRET`. PDFs de notas e boletos são anexados sem OCR; o preenchimento sugerido vem de XMLs compatíveis.
 
 ## Segurança
 
@@ -115,7 +141,7 @@ Os testes cobrem a atualização condicional de saldo, recusa de estoque insufic
 
 Esta base **não emite NFS-e nem remessa CNAB pronta para envio**. A tabela de NFS-e armazena rascunhos internos; `ISSUED` só deve ser usado após confirmação externa, que ainda não existe. XML nacional e ABRASF exigem seleção de versão, município, regras de preenchimento, assinatura e validação contra XSD. CNAB exige banco, convênio, serviço e layout versionado. Esses adaptadores devem ser desenvolvidos e homologados antes de exportar arquivos operacionais. Não há integração direta com SEFAZ ou convênios.
 
-O parser OFX cobre transações `STMTTRN` comuns de OFX SGML e XML. É necessário validar amostras dos bancos usados pela empresa antes de conciliar em produção. O relatório financeiro mostra acumulado desde o início dos registros, sem fechamento por competência nem ajustes contábeis. O RBT12 soma notas de serviço e vendas de mercadorias registradas, mas ainda não há fluxo de cadastro de venda de mercadorias na interface. O TXT é um extrato estruturado próprio, que exige mapeamento com o sistema do contador antes da importação. Antes de usar como escrituração oficial, complete permissões por operação, auditoria imutável, estornos, reconciliação de extratos de saída, exportação PDF, geração de contratos em arquivo, testes de integração e revisão contábil/fiscal.
+O parser OFX cobre transações `STMTTRN` comuns de OFX SGML e XML. É necessário validar amostras dos bancos usados pela empresa antes de conciliar em produção. O relatório financeiro mostra acumulado desde o início dos registros, sem fechamento por competência nem ajustes contábeis. O RBT12 soma notas de serviço e vendas de mercadorias registradas, mas ainda não há fluxo de cadastro de venda de mercadorias na interface. O TXT é um extrato estruturado próprio, que exige mapeamento com o sistema do contador antes da importação. Antes de usar como escrituração oficial, complete permissões por operação, auditoria imutável, estornos, reconciliação de extratos de saída, exportação PDF no servidor, geração de contratos em arquivo, testes de integração e revisão contábil/fiscal.
 
 ## Referências oficiais
 

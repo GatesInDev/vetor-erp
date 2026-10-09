@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HttpError } from "@/lib/auth";
 import { hasSameOrigin } from "@/lib/request-origin";
+import { isJsonContentType, requiresOriginCheck } from "@/lib/auth-credentials";
 
-export function checkOrigin(request: NextRequest): void {
+export function checkOrigin(request: NextRequest, options: { allowBearer?: boolean } = {}): void {
+  if (options.allowBearer !== false && !requiresOriginCheck(request.headers.get("authorization"))) return;
   if (!hasSameOrigin(request)) throw new HttpError(403, "Invalid origin");
+}
+
+export function requireJson(request: NextRequest): void {
+  if (!isJsonContentType(request.headers.get("content-type"))) throw new HttpError(415, "Content-Type must be application/json");
 }
 
 export function errorResponse(error: unknown): NextResponse {

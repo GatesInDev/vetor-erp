@@ -1,0 +1,65 @@
+.accounting-report, .accounting-report-document { min-width: 0; }
+.accounting-report-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.accounting-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 16px; align-items: end; }
+.accounting-filters button { min-height: 48px; justify-content: center; }
+.accounting-zero-toggle { margin-top: 16px; }
+.accounting-notice { margin: 12px 0 0; padding: 12px 16px; border: 1px solid var(--line-strong); color: var(--muted); border-radius: 8px; }
+.accounting-document-heading { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: start; gap: 20px; border-bottom: 1px solid var(--line-strong); padding-bottom: 22px; }
+.accounting-document-heading h1 { font-size: 27px; margin: 8px 0; }
+.accounting-document-heading p { margin: 0; color: var(--muted); }
+.accounting-document-meta { display: grid; gap: 4px; color: var(--subtle); font-size: 13px; }
+.accounting-check { margin: 20px 0; color: var(--muted); font-size: 15px; }
+.accounting-check.is-unbalanced { padding: 12px 16px; border: 1px solid #bb9180; border-radius: 8px; }
+.accounting-group { margin-top: 30px; }
+.accounting-group h2 { font-size: 21px; margin: 0 0 16px; }
+.accounting-table { border-collapse: collapse; width: 100%; min-width: 460px; text-align: left; font-size: 15px; line-height: 1.5; }
+.accounting-table th, .accounting-table td { border-bottom: 1px solid var(--line-strong); padding: 13px 12px; vertical-align: top; }
+.accounting-table th:first-child, .accounting-table td:first-child { padding-left: 0; }
+.accounting-table th:last-child, .accounting-table td:last-child { padding-right: 0; }
+.accounting-table thead th { color: var(--subtle); font-size: 13px; font-weight: 600; }
+.accounting-table tbody th { font-weight: 400; color: var(--ink); overflow-wrap: anywhere; }
+.accounting-table .accounting-amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.accounting-code { white-space: nowrap; color: var(--muted); width: 100px; }
+.accounting-secondary { display: block; margin-top: 4px; color: var(--subtle); font-size: 13px; font-weight: 400; }
+.accounting-subtotal th, .accounting-subtotal td { border-top: 1px solid var(--line-strong); }
+.accounting-total th, .accounting-total td { border-top: 2px solid var(--line-strong); border-bottom: 2px solid var(--line-strong); font-weight: 650 !important; }
+.accounting-total-pair { display: block; }
+.accounting-balance { display: inline-flex; justify-content: flex-end; gap: 6px; }
+.accounting-balance abbr { color: var(--subtle); text-decoration: none; }
+.accounting-empty { color: var(--muted); padding: 24px 0 !important; }
+.accounting-trial-table { min-width: 870px; }
+.accounting-trial-table th:nth-child(2) { min-width: 200px; }
+.accounting-comparison { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding: 24px 0; margin-top: 28px; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
+.accounting-comparison > div { display: grid; gap: 8px; min-width: 0; }
+.accounting-comparison span { color: var(--muted); font-size: 14px; }
+.accounting-comparison strong { font-size: 21px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.accounting-comparison [data-balanced="false"] strong { color: #c99780; }
+.accounting-note { color: var(--subtle); font-size: 14px; margin: 20px 0; }
+.accounting-print-warning { display: none; }
+@media (max-width: 760px) {
+  .accounting-report-cards { grid-template-columns: minmax(0, 1fr); }
+  .accounting-comparison { grid-template-columns: minmax(0, 1fr); }
+  .accounting-report-document { padding: 18px; }
+}
+@media print {
+  .accounting-report-controls { display: none !important; }
+  .accounting-report { display: block !important; margin: 0 !important; padding: 0 !important; }
+  .accounting-report-document { --ink: #111; --muted: #333; --subtle: #555; --line-strong: #aaa; background: #fff !important; color: #111 !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .accounting-report-document .table-scroll { overflow: visible !important; max-height: none !important; }
+  .accounting-document-heading { padding-bottom: 5mm; break-after: avoid; }
+  .accounting-document-heading h1 { font-size: 18pt; }
+  .accounting-document-heading p, .accounting-document-meta { font-size: 9pt; }
+  .accounting-group h2 { font-size: 13pt; break-after: avoid; }
+  .accounting-table { min-width: 0; font-size: 9pt; }
+  .accounting-table thead { display: table-header-group; }
+  .accounting-table tr { break-inside: avoid; }
+  .accounting-table th, .accounting-table td { padding: 2mm; }
+  .accounting-table thead th, .accounting-secondary { font-size: 8pt; }
+  .accounting-code { width: auto; }
+  .accounting-trial-table th:nth-child(2) { min-width: 0; }
+  .accounting-note, .accounting-check { font-size: 9pt; }
+  .accounting-comparison { grid-template-columns: repeat(3, minmax(0, 1fr)); break-inside: avoid; padding: 5mm 0; }
+  .accounting-comparison strong { font-size: 12pt; color: #111 !important; }
+  .accounting-report[data-print-ready="false"] .accounting-report-document { display: none !important; }
+  .accounting-report[data-print-ready="false"] .accounting-print-warning { display: block; padding: 10mm; color: #000; }
+}
