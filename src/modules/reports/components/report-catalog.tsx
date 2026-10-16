@@ -4,7 +4,7 @@ import { useLocale } from "@/modules/settings/components/preferences-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Archive, ArchiveRestore, ArrowUpRight, Copy, FileText, Pencil, Plus, Printer, Search } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowUpRight, Copy, FileSpreadsheet, FileText, Pencil, Plus, Printer, Search } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { apiRequest } from "@/lib/client-api";
@@ -63,6 +63,7 @@ export function ReportCatalog({ templates, canWrite, canReadAccounting }: { temp
   return <div className="page-stack report-catalog">
     <PageHeader eyebrow={t("Documentos do seu jeito")} title={t("Relatórios")} description={t("Crie modelos para sua operação, organize os campos na folha e imprima com dados do sistema ou espaços para preencher à mão.")} actions={canWrite ? <Link className="primary-button" href="/reports/new"><Plus size={17} />{t("Novo modelo")}</Link> : undefined} />
     {notice && <p className="form-success" role="status">“{notice.name}” {t(notice.active ? "reativado com sucesso." : "arquivado com sucesso.")}</p>}
+    {canReadAccounting && <Link className="island spreadsheet-catalog-card" href="/reports/spreadsheets"><div className="spreadsheet-upload-icon"><FileSpreadsheet size={28} strokeWidth={1.5} /></div><div><p className="section-label">{t("DA PLANILHA AO RELATÓRIO")}</p><h2>{t("Boletos, títulos e obras")}</h2><p>{t("Importe seu XLSX, escolha os filtros e gere um relatório com totais, agrupamentos e impressão em PDF.")}</p></div><span>{t("Importar planilha")}<ArrowUpRight size={18} /></span></Link>}
     {canReadAccounting && <section aria-labelledby="accounting-reports-title"><div className="module-section-heading"><div><p className="section-label">{t("DEMONSTRATIVOS CONTÁBEIS")}</p><h2 id="accounting-reports-title">{t("Da escrituração para os demonstrativos")}</h2></div></div><div className="accounting-report-cards">
       <Link className="island report-preset-card" href="/reports/balance-sheet"><FileText size={24} strokeWidth={1.5} /><h3>{t("Balanço patrimonial")}<ArrowUpRight size={17} /></h3><p>{t("Consulte ativos, passivos e patrimônio líquido em uma data de referência.")}</p><span>{t("Consultar demonstrativo")}</span></Link>
       <Link className="island report-preset-card" href="/reports/trial-balance"><FileText size={24} strokeWidth={1.5} /><h3>{t("Balancete de verificação")}<ArrowUpRight size={17} /></h3><p>{t("Confira saldos iniciais, débitos, créditos e saldos finais de cada conta no período.")}</p><span>{t("Consultar demonstrativo")}</span></Link>

@@ -7,7 +7,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/lib/request-origin.test.ts src/modules/inventory/server/movements.test.ts src/modules/workspace/tab-state.test.ts src/lib/auth-credentials.test.ts src/lib/access-token.test.ts src/lib/refresh-session.test.ts src/modules/reports/sources.test.ts src/modules/reports/layout.test.ts src/modules/reports/images.test.ts src/modules/reports/template-request.test.ts src/modules/settings/schema.test.ts src/modules/workspace/screen-cache.test.ts src/modules/finance/titles/schema.test.ts src/modules/finance/titles/operations.test.ts src/modules/reports/accounting/schema.test.ts src/modules/reports/accounting/calculations.test.ts src/modules/reports/accounting/queries.test.ts src/modules/reports/accounting/components/accounting-format.test.ts src/modules/rentals/schema.test.ts src/modules/rentals/operations.test.ts src/modules/rentals/documents.test.ts src/modules/rentals/components/rental-total.test.ts src/app/api/equipment-rentals/validation.test.ts src/modules/mail/cron.test.ts src/modules/mail/imap.test.ts src/modules/mail/import-charge.test.ts src/modules/mail/operations.test.ts src/modules/mail/schema.test.ts src/modules/mail/sync.test.ts src/modules/mail/components/rental-suggestion.test.ts",
+    "test": "node --import tsx --test src/lib/request-origin.test.ts src/modules/inventory/server/movements.test.ts src/modules/workspace/tab-state.test.ts src/lib/auth-credentials.test.ts src/lib/access-token.test.ts src/lib/refresh-session.test.ts src/modules/reports/sources.test.ts src/modules/reports/layout.test.ts src/modules/reports/images.test.ts src/modules/reports/template-request.test.ts src/modules/settings/schema.test.ts src/modules/workspace/screen-cache.test.ts src/modules/finance/titles/schema.test.ts src/modules/finance/titles/operations.test.ts src/modules/reports/accounting/schema.test.ts src/modules/reports/accounting/calculations.test.ts src/modules/reports/accounting/queries.test.ts src/modules/reports/accounting/components/accounting-format.test.ts src/modules/rentals/schema.test.ts src/modules/rentals/operations.test.ts src/modules/rentals/documents.test.ts src/modules/rentals/components/rental-total.test.ts src/app/api/equipment-rentals/validation.test.ts src/modules/mail/cron.test.ts src/modules/mail/imap.test.ts src/modules/mail/import-charge.test.ts src/modules/mail/operations.test.ts src/modules/mail/schema.test.ts src/modules/mail/sync.test.ts src/modules/mail/components/rental-suggestion.test.ts src/modules/reports/spreadsheets/report.test.ts src/modules/reports/spreadsheets/parser.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma generate && tsx prisma/seed.ts"
@@ -22,7 +22,8 @@
     "next": "^15.5.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "zod": "^4.1.8"
+    "zod": "^4.1.8",
+    "fflate": "0.8.3"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.5.25",

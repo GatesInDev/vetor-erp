@@ -37,6 +37,7 @@ export function workspaceTabTitle(pathname: string): string {
   if (pathname.startsWith("/finance/titles/")) return pathname.endsWith("/new") ? "Novo título" : "Título";
   if (pathname.startsWith("/rentals/")) return pathname.endsWith("/charges/new") ? "Registrar cobrança" : pathname === "/rentals/new" ? "Nova locação" : "Locação";
   if (pathname === "/reports/new") return "Novo relatório";
+  if (pathname === "/reports/spreadsheets") return "Relatórios de planilhas";
   if (pathname === "/reports/balance-sheet") return "Balanço patrimonial";
   if (pathname === "/reports/trial-balance") return "Balancete";
   if (pathname.startsWith("/reports/") && pathname.endsWith("/edit")) return "Editar relatório";

@@ -6,6 +6,7 @@ import { reportTranslations } from "./report-translations";
 import { accountingTranslations } from "./accounting-translations";
 import { rentalTranslations } from "./rental-translations";
 import { mailTranslations } from "./mail-translations";
+import { spreadsheetTranslations } from "./spreadsheet-translations";
 
 const messages: Record<string, string> = {
   "Locações": "Rentals", "Equipamentos alugados": "Rented equipment", "Nova locação": "New rental", "Locação": "Rental", "Registrar cobrança": "Record charge",
@@ -27,5 +28,5 @@ const messages: Record<string, string> = {
 };
 
 export function translate(locale: UserPreferences["locale"], source: string): string {
-  return locale === "en-US" ? messages[source] ?? moduleTranslations[source] ?? operationsTranslations[source] ?? financeTranslations[source] ?? reportTranslations[source] ?? accountingTranslations[source] ?? rentalTranslations[source] ?? mailTranslations[source] ?? source : source;
+  return locale === "en-US" ? messages[source] ?? moduleTranslations[source] ?? operationsTranslations[source] ?? financeTranslations[source] ?? reportTranslations[source] ?? accountingTranslations[source] ?? rentalTranslations[source] ?? mailTranslations[source] ?? spreadsheetTranslations[source] ?? source : source;
 }

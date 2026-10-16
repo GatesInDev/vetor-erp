@@ -99,6 +99,7 @@ export const workspaceNavigation: WorkspaceNavigationModule[] = [
     icon: FileText,
     items: [
       { label: "Biblioteca de modelos", href: "/reports" },
+      { label: "Relatórios de planilhas", href: "/reports/spreadsheets", roles: financialReportRoles },
       { label: "Novo modelo", href: "/reports/new?preset=blank", roles: managementRoles },
       { label: "Modelo de abastecimento", href: "/reports/new?preset=fuel", roles: managementRoles },
       { label: "Balanço patrimonial", href: "/reports/balance-sheet", roles: financialReportRoles },
