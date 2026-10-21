@@ -4,7 +4,7 @@ import { useLocale } from "@/modules/settings/components/preferences-provider";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import { pageDimensions, type ReportDefinition, type ReportElement } from "../schema";
-import { resolveField, type PrintedPage, type ReportValues } from "../layout";
+import { resolveField, resolveText, type PrintedPage, type ReportValues } from "../layout";
 import { manualTableLayout } from "../table-layout";
 
 export function elementStyle(element: ReportElement): CSSProperties {
@@ -19,7 +19,7 @@ export function ReportElementContent({ element, value, table, editing = false }:
   if (element.type === "line") return <div className="report-rule" />;
   if (element.type === "box") return <div className="report-box" />;
   if (element.type === "blank") return <div className="report-blank">{Array.from({ length: element.lineCount }, (_, index) => <span key={index} />)}</div>;
-  if (element.type === "signature") return <div className="report-signature"><span>{element.text}</span></div>;
+  if (element.type === "signature") return <div className="report-signature"><span>{value ?? element.text}</span></div>;
   if (element.type === "manualTable") {
     const weight = element.columns.reduce((sum, column) => sum + column.width, 0);
     const { headers, rowHeight } = manualTableLayout(element);
@@ -29,7 +29,7 @@ export function ReportElementContent({ element, value, table, editing = false }:
     const weight = element.columns.reduce((sum, column) => sum + column.width, 0);
     return <table className="report-data-table" style={{ fontSize: `${element.fontSize}pt` }}><colgroup>{element.columns.map((column, index) => <col key={index} style={{ width: `${column.width / weight * 100}%` }} />)}</colgroup><thead><tr style={{ height: table?.headers ? `${table.headers.height}mm` : undefined }}>{element.columns.map((column, index) => <th key={index}>{table?.headers?.cells[index].join("\n") ?? column.label}</th>)}</tr></thead><tbody>{table ? table.rows.map((row, index) => <tr key={index} style={{ height: `${row.height}mm` }}>{row.cells.map((cell, columnIndex) => <td key={columnIndex}>{cell.join("\n")}</td>)}</tr>) : Array.from({ length: 3 }, (_, index) => <tr key={index}>{element.columns.map((column, columnIndex) => <td key={columnIndex}>{editing ? `«${column.label}»` : ""}</td>)}</tr>)}</tbody></table>;
   }
-  return <div className={`report-text ${element.border ? "with-border" : ""}`}>{element.type === "field" ? value ?? `«${element.binding}»` : element.text}</div>;
+  return <div className={`report-text ${element.border ? "with-border" : ""}`}>{value ?? (element.type === "field" ? `«${element.binding}»` : element.text)}</div>;
 }
 
 export function ReportPage({ definition, data, page, inputs, index, total }: { definition: ReportDefinition; data: ReportValues; page: PrintedPage; inputs: Record<string, string>; index: number; total: number }) {
@@ -37,7 +37,7 @@ export function ReportPage({ definition, data, page, inputs, index, total }: { d
   const { width, height } = pageDimensions(definition.page);
   return <article className="report-paper" aria-label={`${t("Página")} ${index} ${t("de")} ${total}`} style={{ width: `${width}mm`, height: `${height}mm` }}>
     {definition.elements.map((element) => <div key={element.id} className={`report-element report-element-${element.type}`} style={elementStyle(element)}>
-      <ReportElementContent element={element} value={resolveField(element.binding, data, page.record, inputs, index, total)} table={page} />
+      <ReportElementContent element={element} value={element.type === "text" || element.type === "signature" ? resolveText(element.text, data, page.record, inputs, index, total) : resolveField(element.binding, data, page.record, inputs, index, total)} table={page} />
     </div>)}
   </article>;
 }

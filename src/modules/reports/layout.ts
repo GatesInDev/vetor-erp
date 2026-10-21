@@ -1,5 +1,6 @@
 import type { ReportDefinition, ReportElement } from "./schema";
 import { manualTableFits, manualTableLayout, manualTableMinimumWidth, tableRow, type PrintedRow } from "./table-layout";
+import { replaceTextBindings } from "./text-template";
 
 export { wrapCell, type PrintedRow } from "./table-layout";
 
@@ -42,6 +43,10 @@ export function resolveField(binding: string, data: ReportValues, record: Record
   if (binding.startsWith("row.")) return Object.hasOwn(record, binding.slice(4)) ? record[binding.slice(4)] : "";
   if (binding.startsWith("input.")) return Object.hasOwn(inputs, binding.slice(6)) ? inputs[binding.slice(6)] : "";
   return "";
+}
+
+export function resolveText(text: string, data: ReportValues, record: Record<string, string>, inputs: Record<string, string>, page: number, total: number): string {
+  return replaceTextBindings(text, (binding) => resolveField(binding, data, record, inputs, page, total));
 }
 
 export function fitElement(element: ReportElement, width: number, height: number, margin: number): ReportElement {

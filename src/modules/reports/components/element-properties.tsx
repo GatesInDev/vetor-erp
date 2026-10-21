@@ -5,6 +5,7 @@ import { reportSources } from "../sources";
 import type { ReportDefinition, ReportElement } from "../schema";
 import { manualTableFits } from "../table-layout";
 import { ImageProperties } from "./image-properties";
+import { TextProperties } from "./text-properties";
 
 export function ElementProperties({ element, definition, update, remove, duplicate, reorder, onImageLoadingChange }: {
   element: ReportElement; definition: ReportDefinition; update: (patch: Partial<ReportElement>) => void;
@@ -24,7 +25,7 @@ export function ElementProperties({ element, definition, update, remove, duplica
     <h3>{t("Propriedades do elemento")}</h3>
     {element.type === "image" && <ImageProperties key={element.id} element={element} definition={definition} update={update} onLoadingChange={onImageLoadingChange} />}
     <div className="report-number-grid">{(["x", "y", "width", "height"] as const).map((key) => <label key={key}>{t(({ x: "Esquerda", y: "Topo", width: "Largura", height: "Altura" })[key])} (mm)<input type="number" step="1" min={key === "width" ? 2 : key === "height" ? 1 : 0} max="300" value={Number(element[key].toFixed(1))} onChange={(event) => update({ [key]: Number(event.target.value) })} /></label>)}</div>
-    {["text", "signature"].includes(element.type) && <label>{t("Texto")}<textarea rows={3} maxLength={2000} value={element.text} onChange={(event) => update({ text: event.target.value })} /></label>}
+    {["text", "signature"].includes(element.type) && <TextProperties key={element.id} text={element.text} bindings={bindings} update={(text) => update({ text })} />}
     {element.type === "field" && <label>{t("Informação")}<select value={element.binding} onChange={(event) => update({ binding: event.target.value })}>{bindings.map((binding) => <option key={binding.key} value={binding.key}>{binding.label}</option>)}</select></label>}
     {["text", "field", "table", "manualTable", "signature"].includes(element.type) && <>
       <label>{t("Fonte (pt)")}<input type="number" min="8" max={isTable ? 16 : 36} value={element.fontSize} onChange={(event) => update({ fontSize: Math.max(8, Math.min(isTable ? 16 : 36, Number(event.target.value))) })} /></label>

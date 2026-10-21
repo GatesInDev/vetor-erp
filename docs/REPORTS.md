@@ -18,11 +18,11 @@ Os valores preenchidos na emissão são temporários. Salvar o modelo grava seu 
 
 | Elemento | Uso |
 | --- | --- |
-| Texto livre | Títulos, instruções e etiquetas |
+| Texto livre | Títulos, instruções e frases com variáveis vinculadas aos campos |
 | Campo de dados | Empresa, data de emissão, número de página, campo da fonte ou preenchimento manual |
 | Linha / retângulo | Separadores e contornos |
 | Espaço pautado | Área com linhas para escrever depois de imprimir |
-| Assinatura | Linha com identificação abaixo |
+| Assinatura | Linha com identificação abaixo, incluindo variáveis no texto |
 | Tabela de registros | Colunas configuráveis, largura proporcional e paginação automática |
 | Tabela para preenchimento | Grade com títulos e células vazias para escrever à mão depois de imprimir |
 | Imagem / logo | Arquivo PNG ou JPEG incorporado ao modelo, com proporção preservada |
@@ -30,6 +30,18 @@ Os valores preenchidos na emissão são temporários. Salvar o modelo grava seu 
 Você pode adicionar campos clicando ou arrastando a paleta. **Criar campo** adiciona um campo manual de texto, número ou data; **Inserir no papel** inclui sua posição no documento. Adicione um texto livre se também quiser uma etiqueta visível no papel.
 
 As propriedades permitem duplicar, excluir, ordenar elementos, ajustar fonte, negrito, alinhamento e contorno. A tabela permite escolher campos, títulos, ordem e peso de largura das colunas.
+
+### Inserir variáveis em textos e assinaturas
+
+1. Em **Campos para preencher**, crie um campo e defina seu nome e tipo, por exemplo **Responsável**.
+2. Selecione **Texto livre** ou **Assinatura** no papel e escreva a frase nas propriedades.
+3. Posicione o cursor onde deseja inserir o valor. Em **Variável no texto**, selecione o campo e clique em **Inserir variável**. Se houver um trecho selecionado, a variável substitui esse trecho.
+4. Continue escrevendo antes ou depois da variável. É possível inserir vários campos ou repetir o mesmo campo. O seletor também oferece empresa, data de emissão, páginas e campos da fonte de dados.
+5. Abra **Prévia** e preencha os campos. Os valores aparecem em todas as ocorrências, tanto na folha quanto na impressão/PDF. Números e datas seguem a formatação dos demais campos.
+
+O editor representa cada vínculo entre chaves, como `Eu, {{input.driver}}, confirmo o recebimento.` ou `Assinatura de {{input.driver}}`. Use o seletor para inserir o identificador correto; não é necessário digitá-lo. Ao preencher o campo com **Ana Silva**, a primeira frase fica **Eu, Ana Silva, confirmo o recebimento.**
+
+Renomear um campo mantém seus vínculos. Remover um campo elimina suas variáveis dos textos e assinaturas, preservando o restante da frase. Ao trocar a fonte de dados, variáveis de campos indisponíveis na nova fonte também são removidas. Campos vazios, inclusive com a opção de preenchimento à mão, deixam apenas o espaço da variável em branco. Confira a prévia e ajuste a área do elemento se um valor longo ultrapassar o espaço disponível. O limite de cada texto é de 2.000 caracteres, incluindo os marcadores das variáveis.
 
 ### Adicionar uma tabela para preenchimento manual
 

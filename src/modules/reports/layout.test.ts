@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createReportElement, createReportPreset, reportPresets } from "./presets";
 import { pageDimensions, reportDefinitionSchema, reportTemplateInputSchema } from "./schema";
-import { fitElement, paginateReport, resolveField, wrapCell, type ReportValues } from "./layout";
+import { fitElement, paginateReport, resolveField, resolveText, wrapCell, type ReportValues } from "./layout";
 import { manualTableFits, manualTableLayout, manualTableMinimumWidth } from "./table-layout";
+import { insertTextBinding, removeTextBinding, replaceTextBindings, textBindings } from "./text-template";
 
 const values: ReportValues = { company: { name: "Example" }, generatedAt: "2026-09-26T15:00:00Z", rows: [{}], truncated: false };
 
@@ -126,4 +127,66 @@ test("manual tables keep writing space and wrapped headings inside the printable
   assert.ok(fitted.y >= 12 && fitted.y + fitted.height <= 198);
   assert.ok(layout.headers.cells[1].length > 1);
   assert.ok(reportDefinitionSchema.safeParse({ ...createReportPreset("blank").definition, page: { size: "A4", orientation: "landscape", margin: 12 }, elements: [fitted] }).success);
+});
+
+test("inline variables resolve repeated values in prose with the same formatting as fields", () => {
+  const text = "I, {{ input.driver }}, confirm {{row.quantity}} for {{company.name}}.\nSigned: {{input.driver}} on {{system.date}} ({{system.page}}/{{system.pages}}).";
+  assert.deepEqual(textBindings(text), ["input.driver", "row.quantity", "company.name", "system.date", "system.page", "system.pages"]);
+  assert.equal(resolveText(text, values, { quantity: "12,50" }, { driver: "Alex" }, 2, 4), "I, Alex, confirm 12,50 for Example.\nSigned: Alex on 26/09/2026 (2/4).");
+  assert.equal(resolveText("Signed: {{input.driver}} / {{row.name}}.", values, {}, {}, 1, 1), "Signed:  / .");
+  assert.equal(resolveText("{{input.toString}}{{row.constructor}}", values, {}, {}, 1, 1), "");
+});
+
+test("inline replacement treats values as literal text without recursive or HTML evaluation", () => {
+  const text = "Statement: {{input.statement}}.";
+  const statement = '<script>alert("example")</script> {{company.name}} $&';
+  assert.equal(resolveText(text, values, {}, { statement }, 1, 1), `Statement: ${statement}.`);
+  assert.equal(replaceTextBindings("Before {{input.value}} after", () => "{{input.other}}"), "Before {{input.other}} after");
+});
+
+test("malformed braces remain literal while complete tokens are recognized consistently", () => {
+  const text = "{input.driver} {{input.driver {{{input.driver}}} {{input.\ndriver}}";
+  assert.deepEqual(textBindings(text), []);
+  assert.equal(replaceTextBindings(text, () => "Alex"), text);
+  assert.deepEqual(textBindings("{{}} {{ input.unknown }}"), ["", "input.unknown"]);
+});
+
+test("text and signature templates validate inline variables against their input and source fields", () => {
+  const definition = createReportPreset("fuel").definition;
+  for (const type of ["text", "signature"] as const) {
+    const element = createReportElement(type, { text: "Signed by {{ input.driver }} for {{company.name}} on {{system.date}}, page {{system.page}}/{{system.pages}}." });
+    assert.ok(reportDefinitionSchema.safeParse({ ...definition, elements: [element] }).success);
+    for (const binding of ["input.missing", "input.constructor", "input.__proto__", "input.prototype", "row.passwordHash", "company.password", "system.unknown", "", "input.driver.toString"]) {
+      const result = reportDefinitionSchema.safeParse({ ...definition, elements: [{ ...element, text: `Before {{${binding}}} after` }] });
+      assert.equal(result.success, false, binding);
+      if (!result.success) assert.ok(result.error.issues.some((issue) => issue.path.join(".") === "elements.0.text"));
+    }
+  }
+  const inventory = createReportPreset("inventory").definition;
+  const element = createReportElement("text", { text: "Product: {{row.name}} / {{row.sku}}" });
+  assert.ok(reportDefinitionSchema.safeParse({ ...inventory, elements: [element] }).success);
+  assert.equal(reportDefinitionSchema.safeParse({ ...definition, elements: [element] }).success, false);
+});
+
+test("renaming an input label preserves inline links and removing a link preserves prose", () => {
+  const definition = createReportPreset("fuel").definition;
+  definition.inputs = definition.inputs.map((input) => input.id === "driver" ? { ...input, label: "Authorized signatory" } : input);
+  const text = "I, {{input.driver}}, sign for {{ company.name }}.\n{{ input.driver }} / {{input.vehicle}}";
+  definition.elements = [createReportElement("signature", { text })];
+  assert.ok(reportDefinitionSchema.safeParse(definition).success);
+  assert.equal(resolveText(text, values, {}, { driver: "Alex", vehicle: "Truck" }, 1, 1), "I, Alex, sign for Example.\nAlex / Truck");
+  const remaining = removeTextBinding(text, "input.driver");
+  assert.equal(remaining, "I, , sign for {{ company.name }}.\n / {{input.vehicle}}");
+  assert.equal(removeTextBinding(remaining, "input.driver"), remaining);
+  assert.ok(reportDefinitionSchema.safeParse({ ...definition, inputs: definition.inputs.filter((input) => input.id !== "driver"), elements: [{ ...definition.elements[0], text: remaining }] }).success);
+});
+
+test("inline insertion replaces the selected range or inserts at the caret and respects text limits", () => {
+  assert.deepEqual(insertTextBinding("Hello , welcome.", "input.driver", 6, 6), { text: "Hello {{input.driver}}, welcome.", caret: 22 });
+  assert.deepEqual(insertTextBinding("Hello NAME, welcome.", "input.driver", 6, 10), { text: "Hello {{input.driver}}, welcome.", caret: 22 });
+  assert.deepEqual(insertTextBinding("", "company.name", 0, 0), { text: "{{company.name}}", caret: 16 });
+  assert.equal(insertTextBinding("x".repeat(1985), "company.name", 1985, 1985), null);
+  assert.equal(insertTextBinding("x".repeat(1984), "company.name", 1984, 1984)?.text.length, 2000);
+  assert.equal(insertTextBinding("x".repeat(2000), "company.name", 0, 16)?.text.length, 2000);
+  assert.deepEqual(insertTextBinding("Replace me", "company.name", -2, 90), { text: "{{company.name}}", caret: 16 });
 });

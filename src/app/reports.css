@@ -46,6 +46,9 @@
 .report-input-item .inline-actions { flex-wrap: wrap; }
 .report-input-item .text-button { font-size: 13px; }
 .report-properties { display: grid; gap: 16px; }
+.report-text-properties { display: grid; gap: 12px; min-width: 0; }
+.report-text-properties textarea { resize: vertical; min-height: 110px; }
+.report-text-properties p { margin: 0; }
 .report-number-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .report-columns { display: grid; gap: 12px; }
 .report-columns h4, .report-columns p { margin: 0; }
@@ -76,8 +79,8 @@
 .report-rule { border-top: .25mm solid #647080; position: absolute; top: 50%; width: 100%; }
 .report-blank { display: flex; flex-direction: column; height: 100%; }
 .report-blank span { flex: 1; border-bottom: .2mm solid #a1a8b2; }
-.report-signature { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; text-align: center; }
-.report-signature span { display: block; border-top: .25mm solid #647080; padding-top: 2mm; }
+.report-signature { height: 100%; display: flex; flex-direction: column; text-align: center; }
+.report-signature span { display: block; flex-shrink: 0; margin-top: auto; border-top: .25mm solid #647080; padding-top: 2mm; white-space: pre-wrap; overflow-wrap: anywhere; }
 .report-data-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-family: "Courier New", monospace; line-height: 1.35; text-align: inherit; }
 .report-data-table th, .report-data-table td { padding: 2mm; border: 0; box-shadow: inset 0 -.2mm #c2c7ce; white-space: pre; vertical-align: top; line-height: 1.35; font-size: inherit; letter-spacing: normal; text-transform: none; color: #17202c; background: #fff; }
 .report-data-table th { background: #edf0f3; font-weight: 700; }
@@ -106,7 +109,7 @@
   .report-designer-grid { grid-template-columns: 260px minmax(0, 1fr); }
   .report-inspector { grid-column: 1 / -1; position: static; max-height: none; overflow: visible; }
   .report-properties { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
-  .report-properties h3, .report-properties .report-columns, .report-property-actions { grid-column: 1 / -1; }
+  .report-properties h3, .report-properties .report-columns, .report-property-actions, .report-text-properties { grid-column: 1 / -1; }
 }
 @media (max-width: 760px) {
   .report-designer-grid { grid-template-columns: minmax(0, 1fr); }

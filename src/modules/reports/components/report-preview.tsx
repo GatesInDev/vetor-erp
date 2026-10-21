@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/client-api";
 import { subscribeToDataChanges } from "@/lib/client-data-events";
 import { useWorkspaceScreenActive } from "@/modules/workspace/components/workspace-screen";
 import { paginateReport, type ReportValues } from "../layout";
-import { pageDimensions, type ReportDefinition, type ReportInput } from "../schema";
+import { pageDimensions, reportDefinitionSchema, type ReportDefinition, type ReportInput } from "../schema";
 import { reportDataFilterSchema, reportSources } from "../sources";
 import { ReportPage } from "./report-page";
 
@@ -162,14 +162,19 @@ export function ReportPreview({ definition, name }: { definition: ReportDefiniti
   }, [source.projectScoped, reload]);
 
   const printInputs = useMemo(() => Object.fromEntries(definition.inputs.map((input) => [input.id, blankInputs ? "" : formattedInput(input, inputValues[input.id] ?? "", formatDate, formatNumber)])), [definition.inputs, inputValues, blankInputs, formatDate, formatNumber]);
+  const invalidTextBindings = useMemo(() => {
+    const result = reportDefinitionSchema.safeParse(definition);
+    return !result.success && result.error.issues.some((issue) => issue.message === "Unknown inline field binding");
+  }, [definition]);
   const document = useMemo(() => {
+    if (invalidTextBindings) return { pages: [], error: "Há uma variável sem campo vinculado. Remova-a ou insira um campo disponível pelo seletor.", data: null, inputs: printInputs };
     if (!data || loadedSource !== definition.source) return { pages: [], error: "", data: null, inputs: printInputs };
     try {
       return { pages: paginateReport(definition, data), error: "", data, inputs: printInputs };
     } catch (error) {
       return { pages: [], error: error instanceof Error ? error.message : "Não foi possível organizar as páginas. Ajuste o layout.", data, inputs: printInputs };
     }
-  }, [definition, data, loadedSource, printInputs]);
+  }, [definition, data, loadedSource, printInputs, invalidTextBindings]);
   const [layoutCheck, setLayoutCheck] = useState<{ document: typeof document; overflow: string[]; images: ReportImageStatus } | null>(null);
 
   useEffect(() => {

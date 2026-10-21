@@ -13,6 +13,7 @@ import { manualTableFits } from "../table-layout";
 import { MAX_REPORT_IMAGES_BYTES, reportImageBytes, validateReportImage } from "../images";
 import { elementTypeSchema, pageDimensions, reportTemplateInputSchema, type ReportDefinition, type ReportElement, type ReportTemplate, type ReportTemplateInput } from "../schema";
 import { reportSources } from "../sources";
+import { removeTextBinding, textBindings } from "../text-template";
 import { elementStyle, ReportElementContent } from "./report-page";
 import { ElementProperties } from "./element-properties";
 import { ReportPreview } from "./report-preview";
@@ -79,12 +80,37 @@ export function ReportEditor({ initial, template }: { initial: ReportTemplateInp
     changeDefinition((previous) => { const page = { ...previous.page, ...patch }; const bounds = pageDimensions(page); return { ...previous, page, elements: previous.elements.map((element) => fitElement(element, bounds.width, bounds.height, page.margin)) }; });
   }
 
+  function changeSource(sourceId: ReportDefinition["source"]) {
+    const next = reportSources.find((item) => item.id === sourceId)!;
+    const available = new Set(next.fields.map((field) => `row.${field.key}`));
+    changeDefinition((previous) => ({
+      ...previous, source: next.id,
+      elements: previous.elements.filter((element) => element.type !== "table" || next.fields.length).map((element) => {
+        if (element.type === "table") return { ...element, columns: next.fields.slice(0, 4).map((field) => ({ ...field, width: 2 })) };
+        if (element.type === "field" && element.binding.startsWith("row.")) return { ...element, binding: next.fields.length ? `row.${next.fields[0].key}` : "company.name" };
+        if (element.type !== "text" && element.type !== "signature") return element;
+        const unavailable = textBindings(element.text).filter((binding) => binding.startsWith("row.") && !available.has(binding));
+        return { ...element, text: unavailable.reduce(removeTextBinding, element.text) };
+      }),
+    }));
+  }
+
+  function removeInput(id: string) {
+    const binding = `input.${id}`;
+    changeDefinition((previous) => ({
+      ...previous, inputs: previous.inputs.filter((input) => input.id !== id),
+      elements: previous.elements.filter((element) => element.type !== "field" || element.binding !== binding)
+        .map((element) => element.type === "text" || element.type === "signature" ? { ...element, text: removeTextBinding(element.text, binding) } : element),
+    }));
+  }
+
   async function save() {
     if (draft.pending || imageLoading) return;
     if (definition.elements.some((element) => element.type === "image" && !validateReportImage(element.imageData ?? ""))) { draft.setError("Adicione uma imagem a cada elemento de imagem antes de salvar."); return; }
     if (definition.elements.reduce((total, element) => total + (element.imageData ? reportImageBytes(element.imageData) : 0), 0) > MAX_REPORT_IMAGES_BYTES) { draft.setError("As imagens do modelo podem somar no máximo 1 MB."); return; }
     if (definition.elements.some((element) => element.type === "manualTable" && !manualTableFits(element))) { draft.setError("A tabela para preenchimento precisa de colunas com pelo menos 12 mm e linhas com pelo menos 8 mm. Amplie a tabela, reduza as linhas ou ajuste os títulos."); return; }
     const parsed = reportTemplateInputSchema.safeParse(values);
+    if (!parsed.success && parsed.error.issues.some((issue) => issue.message === "Unknown inline field binding")) { draft.setError("Há uma variável sem campo vinculado. Remova-a ou insira um campo disponível pelo seletor."); return; }
     if (!parsed.success) { draft.setError("Revise o nome, os campos e as dimensões. Tabelas precisam de colunas, altura mínima de 25 mm e fonte de até 16 pt; todos os elementos devem ficar dentro das margens."); return; }
     draft.setPending(true);
     draft.setError("");
@@ -105,10 +131,7 @@ export function ReportEditor({ initial, template }: { initial: ReportTemplateInp
       <details className="island report-settings" open><summary>{t("Identificação e configuração do papel")}</summary><div className="report-settings-grid">
         <label>{t("Nome do modelo")}<input maxLength={120} value={values.name} onChange={(event) => draft.setField("name", event.target.value)} /></label>
         <label>{t("Descrição")}<input maxLength={500} value={values.description} onChange={(event) => draft.setField("description", event.target.value)} /></label>
-        <label>{t("Fonte de dados")}<select value={definition.source} onChange={(event) => {
-          const next = reportSources.find((item) => item.id === event.target.value)!;
-          changeDefinition((previous) => ({ ...previous, source: next.id, elements: previous.elements.filter((element) => element.type !== "table" || next.fields.length).map((element) => element.type === "table" ? { ...element, columns: next.fields.slice(0, 4).map((field) => ({ ...field, width: 2 })) } : element.type === "field" && element.binding.startsWith("row.") ? { ...element, binding: next.fields.length ? `row.${next.fields[0].key}` : "company.name" } : element) }));
-        }}>{reportSources.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}</select></label>
+        <label>{t("Fonte de dados")}<select value={definition.source} onChange={(event) => changeSource(event.target.value as ReportDefinition["source"])}>{reportSources.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}</select></label>
         <label>{t("Papel")}<select value={definition.page.size} onChange={(event) => changePage({ size: event.target.value as "A4" | "LETTER" })}><option value="A4">A4</option><option value="LETTER">{t("Carta")}</option></select></label>
         <label>{t("Orientação")}<select value={definition.page.orientation} onChange={(event) => changePage({ orientation: event.target.value as "portrait" | "landscape" })}><option value="portrait">{t("Retrato")}</option><option value="landscape">{t("Paisagem")}</option></select></label>
         <label>{t("Margens (mm)")}<input type="number" min="5" max="30" value={definition.page.margin} onChange={(event) => changePage({ margin: Math.max(5, Math.min(30, Number(event.target.value))) })} /></label>
@@ -116,7 +139,7 @@ export function ReportEditor({ initial, template }: { initial: ReportTemplateInp
       <div className="report-designer-grid" inert={imageLoading} aria-busy={imageLoading}>
         <aside className="island report-palette"><h2>{t("Elementos")}</h2><p>{t("Arraste até o papel ou toque para adicionar.")}</p><div className="report-palette-buttons">{elementTypeSchema.options.map((type) => <button key={type} type="button" className="secondary-button" draggable disabled={definition.elements.length >= 80 || (type === "table" && (!source.fields.length || definition.elements.some((element) => element.type === "table")))} onDragStart={(event) => event.dataTransfer.setData("application/x-report-element", type)} onClick={() => addElement(type)}>{t(elementLabels[type])}</button>)}</div>
           <details open><summary>{t("Campos da fonte")}</summary><div className="report-field-list">{[{ key: "company.name", label: "Empresa" }, ...source.fields.map((field) => ({ ...field, key: `row.${field.key}` }))].map((field) => <button type="button" key={field.key} draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-report-element", "field"); event.dataTransfer.setData("application/x-report-binding", field.key); }} onClick={() => addElement("field", undefined, field.key)}>{t(field.label)}</button>)}</div></details>
-          <details open><summary>{t("Campos para preencher")}</summary><p>{t("Preencha na prévia ou deixe em branco para escrever no papel.")}</p>{definition.inputs.map((input) => <div className="report-input-item" key={input.id}><label>{t("Nome do campo")}<input aria-label={`${t("Nome")}: ${input.label}`} value={input.label} maxLength={80} onChange={(event) => changeDefinition((previous) => ({ ...previous, inputs: previous.inputs.map((item) => item.id === input.id ? { ...item, label: event.target.value } : item) }))} /></label><label>{t("Tipo")}<select value={input.type} onChange={(event) => changeDefinition((previous) => ({ ...previous, inputs: previous.inputs.map((item) => item.id === input.id ? { ...item, type: event.target.value as typeof input.type } : item) }))}><option value="text">{t("Texto")}</option><option value="number">{t("Número")}</option><option value="date">{t("Data")}</option></select></label><div className="inline-actions"><button type="button" className="text-button" onClick={() => addElement("field", undefined, `input.${input.id}`)}>{t("Inserir no papel")}</button><button type="button" className="text-button" onClick={() => changeDefinition((previous) => ({ ...previous, inputs: previous.inputs.filter((item) => item.id !== input.id), elements: previous.elements.filter((element) => element.type !== "field" || element.binding !== `input.${input.id}`) }))}>{t("Remover")}</button></div></div>)}<button type="button" className="secondary-button" disabled={definition.inputs.length >= 30} onClick={() => changeDefinition((previous) => ({ ...previous, inputs: [...previous.inputs, { id: `field_${crypto.randomUUID().slice(0, 8)}`, label: "Novo campo", type: "text" }] }))}>{t("Criar campo")}</button></details>
+          <details open><summary>{t("Campos para preencher")}</summary><p>{t("Preencha na prévia ou deixe em branco para escrever no papel.")}</p>{definition.inputs.map((input) => <div className="report-input-item" key={input.id}><label>{t("Nome do campo")}<input aria-label={`${t("Nome")}: ${input.label}`} value={input.label} maxLength={80} onChange={(event) => changeDefinition((previous) => ({ ...previous, inputs: previous.inputs.map((item) => item.id === input.id ? { ...item, label: event.target.value } : item) }))} /></label><label>{t("Tipo")}<select value={input.type} onChange={(event) => changeDefinition((previous) => ({ ...previous, inputs: previous.inputs.map((item) => item.id === input.id ? { ...item, type: event.target.value as typeof input.type } : item) }))}><option value="text">{t("Texto")}</option><option value="number">{t("Número")}</option><option value="date">{t("Data")}</option></select></label><div className="inline-actions"><button type="button" className="text-button" onClick={() => addElement("field", undefined, `input.${input.id}`)}>{t("Inserir no papel")}</button><button type="button" className="text-button" onClick={() => removeInput(input.id)}>{t("Remover")}</button></div></div>)}<button type="button" className="secondary-button" disabled={definition.inputs.length >= 30} onClick={() => changeDefinition((previous) => ({ ...previous, inputs: [...previous.inputs, { id: `field_${crypto.randomUUID().slice(0, 8)}`, label: "Novo campo", type: "text" }] }))}>{t("Criar campo")}</button></details>
         </aside>
         <section className="report-canvas-panel"><div className="report-canvas-toolbar"><label>Zoom<select value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[50, 75, 100, 125].map((value) => <option key={value} value={value}>{value}%</option>)}</select></label><span>{formatNumber(size.width)} × {formatNumber(size.height)} mm</span></div><p className="report-hint">{t("Arraste para mover; use a alça inferior para redimensionar. Setas movem 1 mm, Shift + seta move 5 mm.")}</p>
           <div className="report-canvas-scroll"><div style={{ width: `${size.width * zoom / 100}mm`, height: `${size.height * zoom / 100}mm` }}>

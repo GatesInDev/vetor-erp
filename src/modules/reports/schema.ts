@@ -2,6 +2,7 @@ import { z } from "zod";
 import { reportSources } from "./sources";
 import { manualTableFits } from "./table-layout";
 import { MAX_REPORT_IMAGE_BYTES, MAX_REPORT_IMAGES_BYTES, reportImageBytes, validateReportImage } from "./images";
+import { textBindings } from "./text-template";
 
 export const reportSourceSchema = z.enum(["manual", "projects", "partners", "inventory", "stockMovements", "invoices", "payables", "receivables"]);
 export const elementTypeSchema = z.enum(["text", "field", "line", "box", "blank", "signature", "table", "manualTable", "image"]);
@@ -54,6 +55,7 @@ export const reportDefinitionSchema = z.object({
     const margin = definition.page.margin;
     if (element.x < margin || element.y < margin || element.x + element.width > width - margin + 0.01 || element.y + element.height > height - margin + 0.01) context.addIssue({ code: "custom", message: "Element is outside printable bounds", path: ["elements", index] });
     if (element.type === "field" && !bindings.has(element.binding)) context.addIssue({ code: "custom", message: "Unknown field binding", path: ["elements", index, "binding"] });
+    if ((element.type === "text" || element.type === "signature") && textBindings(element.text).some((binding) => !bindings.has(binding))) context.addIssue({ code: "custom", message: "Unknown inline field binding", path: ["elements", index, "text"] });
     if (element.type === "table" && (!element.columns.length || element.columns.some((column) => !fields.some((field) => field.key === column.key)))) context.addIssue({ code: "custom", message: "Invalid table columns for this source", path: ["elements", index, "columns"] });
     if (element.type === "table" && (element.height < 25 || element.fontSize > 16)) context.addIssue({ code: "custom", message: "Table requires at least 25 mm height and at most 16 pt font", path: ["elements", index] });
     if (element.type === "manualTable" && !manualTableFits(element)) context.addIssue({ code: "custom", message: "Manual table requires columns at least 12 mm wide, rows at least 8 mm high, and at most 16 pt font", path: ["elements", index] });
