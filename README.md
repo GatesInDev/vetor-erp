@@ -1,5 +1,7 @@
 # Vetor ERP
 
+![Início do Vetor ERP em ambiente de demonstração](.portfolio/cover.png)
+
 Para colocar o projeto no ar pela Supabase, GitHub e Vercel, siga o [guia de deploy](DEPLOY.md).
 
 Base de um ERP para uma empresa de pisos industriais, com Next.js na Vercel, PostgreSQL na Supabase e Prisma. O projeto entrega um núcleo transacional para contratos e medições de mão de obra, notas de serviço registradas internamente, contas a receber e pagar, conciliação OFX e lançamentos por partidas dobradas. A interface usa dados reais da empresa autenticada.
@@ -148,3 +150,16 @@ O parser OFX cobre transações `STMTTRN` comuns de OFX SGML e XML. É necessár
 - [Documentação técnica atual da NFS-e nacional](https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual)
 - [Layouts FEBRABAN, incluindo CNAB 240](https://portal.febraban.org.br/pagina/3425/33/pt-br/layout-febraban)
 - [Manual PGDAS-D](https://www8.receita.fazenda.gov.br/simplesnacional/arquivos/manual/manual_pgdas-d_2018_v4.pdf)
+
+
+## Capturas da aplicação
+
+Capturas da aplicação executada localmente com banco isolado e dados fictícios, em 10 de novembro de 2026. Nenhum dado da empresa ou credencial de produção foi usado. Elas demonstram a interface disponível nesta revisão, sem afirmar que todos os módulos passaram por validação funcional.
+
+| Dashboard | Cadastros |
+| --- | --- |
+| ![Dashboard](.portfolio/01-dashboard.png) | ![Cadastro de obras](.portfolio/02-cadastros.png) |
+
+![Estoque de demonstração](.portfolio/03-estoque.png)
+
+Metadados, capa e ordem da galeria: [`.portfolio/project.json`](.portfolio/project.json). A demonstração pública estava pausada na Vercel durante a preparação; por isso, o manifesto mantém `demoUrl: null` até sua reativação.

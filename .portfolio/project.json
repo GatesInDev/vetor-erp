@@ -1,0 +1,32 @@
+{
+  "title": "Vetor ERP — Gestão de obras e finanças",
+  "description": "ERP web para obras e pisos industriais: faturamento, contratos, financeiro, estoque e relatórios em uma aplicação multiempresa.",
+  "fullDescription": "Aplicação Next.js com PostgreSQL e Prisma que reúne obras, parceiros, contratos, medições, contas a pagar e receber, conciliação OFX, estoque e lançamentos contábeis. Inclui relatórios, locação de equipamentos, importação de documentos por e-mail e preferências por usuário. Possui controle de acesso por perfil e isolamento por empresa. As capturas mostram uma instalação local com dados fictícios.",
+  "tags": [
+    "TypeScript",
+    "Next.js",
+    "React",
+    "PostgreSQL",
+    "Prisma",
+    "ERP"
+  ],
+  "category": "web",
+  "featured": true,
+  "features": [
+    "Cadastros de obras, clientes e fornecedores",
+    "Contratos, medições e faturamento interno",
+    "Contas a pagar e receber e conciliação OFX",
+    "Estoque e movimentações por obra",
+    "Relatórios contábeis e planilhas",
+    "Locação de equipamentos e importação por e-mail",
+    "Navegação por abas e preferências por usuário"
+  ],
+  "cover": "cover.png",
+  "gallery": [
+    "cover.png",
+    "01-dashboard.png",
+    "02-cadastros.png",
+    "03-estoque.png"
+  ],
+  "demoUrl": null
+}
